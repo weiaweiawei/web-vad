@@ -8,7 +8,7 @@ import {
   FrameProcessor,
   FrameProcessorOptions,
   OrtOptions,
-  validateOptions,
+  validateOptions, 
 } from "./_common"
 import { assetPath } from "./asset-path"
 import { defaultModelFetcher } from "./default-model-fetcher"
@@ -263,7 +263,7 @@ export class AudioNodeVAD {
   }
 
   processFrame = async (frame: Float32Array) => {
-    const ev = await this.frameProcessor.process(frame)
+    const ev = await this.frameProcessor.process(frame) // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
     this.handleFrameProcessorEvent(ev)
   }
 
