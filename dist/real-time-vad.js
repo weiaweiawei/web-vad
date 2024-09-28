@@ -22,16 +22,21 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AudioNodeVAD = exports.MicVAD = exports.defaultRealTimeVADOptions = exports.ort = void 0;
-const ortInstance = __importStar(require("onnxruntime-web"));
+exports.AudioNodeVAD = exports.MicVAD = exports.defaultRealTimeVADOptions = exports.ortInstance = void 0;
+const ort = __importStar(require("onnxruntime-web"));
 const _common_1 = require("./_common");
 const asset_path_1 = require("./asset-path");
 const default_model_fetcher_1 = require("./default-model-fetcher");
-exports.ort = ortInstance;
+//@ts-ignore
+const silero_vad_onnx_1 = __importDefault(require("../silero_vad.onnx"));
+exports.ortInstance = ort;
 exports.defaultRealTimeVADOptions = {
     ..._common_1.defaultFrameProcessorOptions,
-    onFrameProcessed: (probabilities, audio) => { },
+    onFrameProcessed: (probabilities) => { },
     onVADMisfire: () => {
         _common_1.log.debug("VAD misfire");
     },
@@ -42,7 +47,7 @@ exports.defaultRealTimeVADOptions = {
         _common_1.log.debug("Detected speech end");
     },
     workletURL: (0, asset_path_1.assetPath)("vad.worklet.bundle.min.js"),
-    modelURL: (0, asset_path_1.assetPath)("silero_vad.onnx"),
+    modelURL: silero_vad_onnx_1.default,
     modelFetcher: default_model_fetcher_1.defaultModelFetcher,
     stream: undefined,
     ortConfig: undefined,
@@ -87,7 +92,7 @@ class MicVAD {
             this.listening = false;
         };
         this.start = () => {
-            this.audioNodeVAD.start();
+            this.audioNodeVAD.start(); // 实质执行 this.frameProcessor.resume()
             this.listening = true;
         };
         this.destroy = () => {
@@ -112,15 +117,13 @@ class AudioNodeVAD {
         };
         (0, _common_1.validateOptions)(fullOptions);
         if (fullOptions.ortConfig !== undefined) {
-            fullOptions.ortConfig(exports.ort);
+            fullOptions.ortConfig(exports.ortInstance);
         }
         try {
             await ctx.audioWorklet.addModule(fullOptions.workletURL);
         }
         catch (e) {
-            console.error(`Encountered an error while loading worklet. Please make sure the worklet vad.bundle.min.js included with @ricky0123/vad-web is available at the specified path:
-        ${fullOptions.workletURL}
-        If need be, you can customize the worklet file location using the \`workletURL\` option.`);
+            console.error(`加载失败 ${fullOptions.workletURL}`);
             throw e;
         }
         const vadNode = new AudioWorkletNode(ctx, "vad-helper-worklet", {
@@ -130,12 +133,10 @@ class AudioNodeVAD {
         });
         let model;
         try {
-            model = await _common_1.Silero.new(exports.ort, () => fullOptions.modelFetcher(fullOptions.modelURL));
+            model = await _common_1.Silero.new(exports.ortInstance, () => fetch(silero_vad_onnx_1.default).then((model) => model.arrayBuffer()));
         }
         catch (e) {
-            console.error(`Encountered an error while loading model file. Please make sure silero_vad.onnx, included with @ricky0123/vad-web, is available at the specified path:
-      ${fullOptions.modelURL}
-      If need be, you can customize the model file location using the \`modelsURL\` option.`);
+            console.error("导入模型地址失败", e);
             throw e;
         }
         const frameProcessor = new _common_1.FrameProcessor(model.process, model.reset_state, {
@@ -171,18 +172,19 @@ class AudioNodeVAD {
             this.handleFrameProcessorEvent(ev);
         };
         this.start = () => {
+            // 恢复
             this.frameProcessor.resume();
         };
         this.receive = (node) => {
             node.connect(this.entryNode);
         };
         this.processFrame = async (frame) => {
-            const ev = await this.frameProcessor.process(frame);
+            const ev = await this.frameProcessor.process(frame); // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
             this.handleFrameProcessorEvent(ev);
         };
         this.handleFrameProcessorEvent = (ev) => {
             if (ev.probs !== undefined) {
-                this.options.onFrameProcessed(ev.probs, ev.audio);
+                this.options.onFrameProcessed(ev.probs);
             }
             switch (ev.msg) {
                 case _common_1.Message.SpeechStart:

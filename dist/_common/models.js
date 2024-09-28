@@ -34,7 +34,7 @@ class Silero {
             this._c = out.cn;
             const [isSpeech] = out.output.data;
             const notSpeech = 1 - isSpeech;
-            return { notSpeech, isSpeech };
+            return { notSpeech, isSpeech, audioFrame }; // 返回音频帧
         };
     }
 }

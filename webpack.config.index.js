@@ -1,5 +1,4 @@
 const prod = { mode: "production", suffix: "min" }
-const dev = { mode: "development", suffix: "dev" }
 
 const bundleConfig = ({ mode, suffix }) => {
   return {
@@ -16,6 +15,13 @@ const bundleConfig = ({ mode, suffix }) => {
         },
         {
           test: /vad\.\worklet\.bundle\..*\.js/,
+          type: "asset/resource",
+          generator: {
+            filename: "[name][ext]",
+          },
+        },
+        {
+          test: /\.wasm$/,
           type: "asset/resource",
           generator: {
             filename: "[name][ext]",
@@ -38,4 +44,4 @@ const bundleConfig = ({ mode, suffix }) => {
   }
 }
 
-module.exports = [bundleConfig(dev), bundleConfig(prod)]
+module.exports = [ bundleConfig(prod)]

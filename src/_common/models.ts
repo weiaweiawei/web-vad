@@ -9,7 +9,8 @@ export type OrtOptions = {
 
 export interface SpeechProbabilities {
   notSpeech: number
-  isSpeech: number
+  isSpeech: number,
+  audioFrame: Float32Array
 }
 
 export interface Model {
@@ -62,6 +63,6 @@ export class Silero {
     this._c = out.cn
     const [isSpeech] = out.output.data
     const notSpeech = 1 - isSpeech
-    return { notSpeech, isSpeech }
+    return { notSpeech, isSpeech , audioFrame} // 返回音频帧
   }
 }

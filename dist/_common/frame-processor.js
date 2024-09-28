@@ -15,7 +15,7 @@ exports.defaultFrameProcessorOptions = {
     redemptionFrames: 8,
     frameSamples: 1536,
     minSpeechFrames: 3,
-    submitUserSpeechOnPause: false,
+    submitUserSpeechOnPause: false, // 设为 false，表示暂停时不提交语音片段，直接重置或丢弃未完成的语音检测。
 };
 function validateOptions(options) {
     if (!RECOMMENDED_FRAME_SAMPLES.includes(options.frameSamples)) {
@@ -106,8 +106,10 @@ class FrameProcessor {
             });
             if (probs.isSpeech >= this.options.positiveSpeechThreshold &&
                 this.redemptionCounter) {
-                this.redemptionCounter = 0;
+                this.redemptionCounter = 0; // 重置静音帧计算数量
             }
+            // 加个逻辑，声音帧，持续输出，不是中断是持续讲话的,然后将下面静音的逻辑，移到外面处理
+            // 不是开始、不是结束、是持续
             if (probs.isSpeech >= this.options.positiveSpeechThreshold &&
                 !this.speaking) {
                 this.speaking = true;
@@ -115,7 +117,7 @@ class FrameProcessor {
             }
             if (probs.isSpeech < this.options.negativeSpeechThreshold &&
                 this.speaking &&
-                ++this.redemptionCounter >= this.options.redemptionFrames) {
+                ++this.redemptionCounter >= this.options.redemptionFrames) { // 静音模式
                 this.redemptionCounter = 0;
                 this.speaking = false;
                 const audioBuffer = this.audioBuffer;
@@ -132,11 +134,12 @@ class FrameProcessor {
                 }
             }
             if (!this.speaking) {
-                while (this.audioBuffer.length > this.options.preSpeechPadFrames) {
+                while (this.audioBuffer.length > this.options.preSpeechPadFrames) { // 只保留制定数量的音频帧，保留最新的
                     this.audioBuffer.shift();
                 }
             }
-            return { probs };
+            return { probs, frame };
+            // 怎样处理上面返回的 音频帧呢，就是如果结束了 就停止收集，做个优先级
         };
         this.audioBuffer = [];
         this.reset();

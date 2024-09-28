@@ -1,8 +1,8 @@
-import * as ortInstance from "onnxruntime-web";
+import * as ort from "onnxruntime-web";
 import { Message, SpeechProbabilities, FrameProcessor, FrameProcessorOptions, OrtOptions } from "./_common";
 interface RealTimeVADCallbacks {
     /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
-    onFrameProcessed: (probabilities: SpeechProbabilities, audio: Float32Array) => any;
+    onFrameProcessed: (probabilities: SpeechProbabilities) => any;
     /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
      * audio segment is smaller than `minSpeechFrames`.
      */
@@ -33,7 +33,7 @@ interface RealTimeVADOptionsWithoutStream extends FrameProcessorOptions, RealTim
 interface RealTimeVADOptionsWithStream extends FrameProcessorOptions, RealTimeVADCallbacks, OrtOptions, AssetOptions {
     stream: MediaStream;
 }
-export declare const ort: typeof ortInstance;
+export declare const ortInstance: typeof ort;
 export type RealTimeVADOptions = RealTimeVADOptionsWithStream | RealTimeVADOptionsWithoutStream;
 export declare const defaultRealTimeVADOptions: RealTimeVADOptions;
 export declare class MicVAD {
