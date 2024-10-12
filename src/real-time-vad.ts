@@ -13,7 +13,7 @@ import {
 import { assetPath } from "./asset-path";
 import { defaultModelFetcher } from "./default-model-fetcher";
 // @ts-ignore
-const onnxFile = new URL("../dist/silero_vad.onnx", import.meta.url).href;
+const onnxFile = new URL("./silero_vad.onnx", import.meta.url).href;
 
 interface RealTimeVADCallbacks {
   /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
@@ -90,7 +90,6 @@ export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   },
   workletURL: assetPath("vad.worklet.bundle.min.js"),
   modelURL: assetPath("silero_vad.onnx"),
-  // modelURL: "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
   modelFetcher: defaultModelFetcher,
   stream: undefined,
   ortConfig: undefined,
@@ -101,13 +100,12 @@ const loadModel =  async () =>{
     return await Silero.new(ortInstance, async () => {
       console.log("model 正在加载....1");
       const response = await fetch(onnxFile);
-      console.log("model 正在加载....2");
+      console.log("model 正在加载....2",response);
       if (!response.ok) {
         throw new Error(
           `Failed to load model: ${response.status} ${response.statusText}`
         );
       }
-      console.log("模型导入成功", response.arrayBuffer());
       return response.arrayBuffer();
     });
   } catch (e) {
@@ -197,6 +195,7 @@ export class AudioNodeVAD {
     };
 
     validateOptions(fullOptions);
+    console.log("fullOptions-参数", fullOptions);
 
     if (fullOptions.ortConfig !== undefined) {
       fullOptions.ortConfig(ort);
@@ -219,22 +218,22 @@ export class AudioNodeVAD {
     });
 
     let model: Silero;
-    try {
-      model = await loadModel();
-      console.log("模型数据", model);
-    } catch (e) {
-      console.error("初始化模型失败！！！");
-      throw e;
-    }
-
     // try {
-    //   model = await Silero.new(ort, () =>
-    //     fullOptions.modelFetcher(fullOptions.modelURL)
-    //   )
+    //   model = await loadModel();
+    //   console.log("模型数据", model);
     // } catch (e) {
     //   console.error("初始化模型失败！！！");
-    //   throw e
+    //   throw e;
     // }
+
+    try {
+      model = await Silero.new(ort, () =>
+        fullOptions.modelFetcher(fullOptions.modelURL)
+      )
+    } catch (e) {
+      console.error("初始化模型失败！！！");
+      throw e
+    }
 
     const frameProcessor = new FrameProcessor(
       model.process,

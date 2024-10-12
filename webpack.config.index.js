@@ -1,5 +1,5 @@
-const prod = { mode: "production", suffix: "min" }
-const dev = { mode: "development", suffix: "dev" }
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const prod = { mode: "production", suffix: "min" };
 
 const bundleConfig = ({ mode, suffix }) => {
   return {
@@ -8,10 +8,10 @@ const bundleConfig = ({ mode, suffix }) => {
     module: {
       rules: [
         {
-          test: /\.onnx/,
-          type: "asset/resource",
+          test: /\.onnx$/, // 添加此规则以处理 .onnx 文件
+          type: 'asset/resource', // 使用 Webpack 5 的内置资源处理
           generator: {
-            filename: "[name][ext]",
+            filename: '[name][ext]', // 输出文件名保持不变
           },
         },
         {
@@ -35,7 +35,17 @@ const bundleConfig = ({ mode, suffix }) => {
       filename: `bundle.${suffix}.js`,
       library: { name: "vad", type: "umd" },
     },
-  }
-}
+    plugins: [
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: "node_modules/onnxruntime-web/**/*.wasm",
+            to: "[name][ext]",
+          },
+        ],
+      }),
+    ],
+  };
+};
 
-module.exports = [bundleConfig(dev), bundleConfig(prod)]
+module.exports = [bundleConfig(prod)];
