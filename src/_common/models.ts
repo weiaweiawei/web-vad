@@ -10,6 +10,7 @@ export type OrtOptions = {
 export interface SpeechProbabilities {
   notSpeech: number
   isSpeech: number
+  audioFrame: Float32Array
 }
 
 export interface Model {
@@ -35,12 +36,12 @@ export class Silero {
   }
 
   init = async () => {
-    log.debug("initializing vad")
+    console.log("VAD 正在初始化");
     const modelArrayBuffer = await this.modelFetcher()
     this._session = await this.ort.InferenceSession.create(modelArrayBuffer)
     this._sr = new this.ort.Tensor("int64", [16000n])
     this.reset_state()
-    log.debug("vad is initialized")
+    console.log("VAD 初始化完成",modelArrayBuffer);
   }
 
   reset_state = () => {
@@ -62,6 +63,6 @@ export class Silero {
     this._c = out.cn
     const [isSpeech] = out.output.data
     const notSpeech = 1 - isSpeech
-    return { notSpeech, isSpeech }
+    return { notSpeech, isSpeech, audioFrame }
   }
 }

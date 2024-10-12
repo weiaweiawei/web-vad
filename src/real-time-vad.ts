@@ -1,4 +1,4 @@
-import * as ortInstance from "onnxruntime-web"
+import * as ortInstance from "onnxruntime-web";
 import {
   log,
   Message,
@@ -8,29 +8,34 @@ import {
   FrameProcessor,
   FrameProcessorOptions,
   OrtOptions,
-  validateOptions, 
-} from "./_common"
-import { assetPath } from "./asset-path"
-import { defaultModelFetcher } from "./default-model-fetcher"
+  validateOptions,
+} from "./_common";
+import { assetPath } from "./asset-path";
+import { defaultModelFetcher } from "./default-model-fetcher";
+// @ts-ignore
+const onnxFile = new URL("../dist/silero_vad.onnx", import.meta.url).href;
 
 interface RealTimeVADCallbacks {
   /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
-  onFrameProcessed: (probabilities: SpeechProbabilities,audio: Float32Array) => any
+  onFrameProcessed: (
+    probabilities: SpeechProbabilities,
+    audio: Float32Array
+  ) => any;
 
   /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
    * audio segment is smaller than `minSpeechFrames`.
    */
-  onVADMisfire: () => any
+  onVADMisfire: () => any;
 
   /** Callback to run when speech start is detected */
-  onSpeechStart: () => any
+  onSpeechStart: () => any;
 
   /**
    * Callback to run when speech end is detected.
    * Takes as arg a Float32Array of audio samples between -1 and 1, sample rate 16000.
    * This will not run if the audio segment is smaller than `minSpeechFrames`.
    */
-  onSpeechEnd: (audio: Float32Array) => any
+  onSpeechEnd: (audio: Float32Array) => any;
 }
 
 /**
@@ -40,21 +45,21 @@ interface RealTimeVADCallbacks {
 type AudioConstraints = Omit<
   MediaTrackConstraints,
   "channelCount" | "echoCancellation" | "autoGainControl" | "noiseSuppression"
->
+>;
 
 type AssetOptions = {
-  workletURL: string
-  modelURL: string
-  modelFetcher: (path: string) => Promise<ArrayBuffer>
-}
+  workletURL: string;
+  modelURL: string;
+  modelFetcher: (path: string) => Promise<ArrayBuffer>;
+};
 
 interface RealTimeVADOptionsWithoutStream
   extends FrameProcessorOptions,
     RealTimeVADCallbacks,
     OrtOptions,
     AssetOptions {
-  additionalAudioConstraints?: AudioConstraints
-  stream: undefined
+  additionalAudioConstraints?: AudioConstraints;
+  stream: undefined;
 }
 
 interface RealTimeVADOptionsWithStream
@@ -62,43 +67,64 @@ interface RealTimeVADOptionsWithStream
     RealTimeVADCallbacks,
     OrtOptions,
     AssetOptions {
-  stream: MediaStream
+  stream: MediaStream;
 }
 
-export const ort = ortInstance
+export const ort = ortInstance;
 
 export type RealTimeVADOptions =
   | RealTimeVADOptionsWithStream
-  | RealTimeVADOptionsWithoutStream
+  | RealTimeVADOptionsWithoutStream;
 
 export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   ...defaultFrameProcessorOptions,
-  onFrameProcessed: (probabilities,audio) => {},
+  onFrameProcessed: (probabilities, audio) => {},
   onVADMisfire: () => {
-    log.debug("VAD misfire")
+    log.debug("VAD misfire");
   },
   onSpeechStart: () => {
-    log.debug("Detected speech start")
+    log.debug("Detected speech start");
   },
   onSpeechEnd: () => {
-    log.debug("Detected speech end")
+    log.debug("Detected speech end");
   },
   workletURL: assetPath("vad.worklet.bundle.min.js"),
   modelURL: assetPath("silero_vad.onnx"),
+  // modelURL: "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
   modelFetcher: defaultModelFetcher,
   stream: undefined,
   ortConfig: undefined,
+};
+
+const loadModel =  async () =>{
+  try {
+    return await Silero.new(ortInstance, async () => {
+      console.log("model 正在加载....1");
+      const response = await fetch(onnxFile);
+      console.log("model 正在加载....2");
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load model: ${response.status} ${response.statusText}`
+        );
+      }
+      console.log("模型导入成功", response.arrayBuffer());
+      return response.arrayBuffer();
+    });
+  } catch (e) {
+    console.error(`加载模型文件时出错。请确保 ${onnxFile} 可用。`);
+    throw e;
+  }
 }
- 
+
 export class MicVAD {
   static async new(options: Partial<RealTimeVADOptions> = {}) {
     const fullOptions: RealTimeVADOptions = {
       ...defaultRealTimeVADOptions,
       ...options,
-    }
-    validateOptions(fullOptions)
+    };
+    validateOptions(fullOptions);
 
-    let stream: MediaStream
+    let stream: MediaStream;
     if (fullOptions.stream === undefined)
       stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -108,16 +134,16 @@ export class MicVAD {
           autoGainControl: true,
           noiseSuppression: true,
         },
-      })
-    else stream = fullOptions.stream
+      });
+    else stream = fullOptions.stream;
 
-    const audioContext = new AudioContext()
+    const audioContext = new AudioContext();
     const sourceNode = new MediaStreamAudioSourceNode(audioContext, {
       mediaStream: stream,
-    })
+    });
 
-    const audioNodeVAD = await AudioNodeVAD.new(audioContext, fullOptions)
-    audioNodeVAD.receive(sourceNode)
+    const audioNodeVAD = await AudioNodeVAD.new(audioContext, fullOptions);
+    audioNodeVAD.receive(sourceNode);
 
     return new MicVAD(
       fullOptions,
@@ -125,7 +151,7 @@ export class MicVAD {
       stream,
       audioNodeVAD,
       sourceNode
-    )
+    );
   }
 
   private constructor(
@@ -138,26 +164,26 @@ export class MicVAD {
   ) {}
 
   pause = () => {
-    this.audioNodeVAD.pause()
-    this.listening = false
-  }
+    this.audioNodeVAD.pause();
+    this.listening = false;
+  };
 
   start = () => {
-    this.audioNodeVAD.start()
-    this.listening = true
-  }
+    this.audioNodeVAD.start();
+    this.listening = true;
+  };
 
   destroy = () => {
     if (this.listening) {
-      this.pause()
+      this.pause();
     }
     if (this.options.stream === undefined) {
-      this.stream.getTracks().forEach((track) => track.stop())
+      this.stream.getTracks().forEach((track) => track.stop());
     }
-    this.sourceNode.disconnect()
-    this.audioNodeVAD.destroy()
-    this.audioContext.close()
-  }
+    this.sourceNode.disconnect();
+    this.audioNodeVAD.destroy();
+    this.audioContext.close();
+  };
 }
 
 export class AudioNodeVAD {
@@ -168,42 +194,47 @@ export class AudioNodeVAD {
     const fullOptions: RealTimeVADOptions = {
       ...defaultRealTimeVADOptions,
       ...options,
-    }
-    validateOptions(fullOptions)
+    };
+
+    validateOptions(fullOptions);
 
     if (fullOptions.ortConfig !== undefined) {
-      fullOptions.ortConfig(ort)
+      fullOptions.ortConfig(ort);
     }
 
     try {
-      await ctx.audioWorklet.addModule(fullOptions.workletURL)
+      await ctx.audioWorklet.addModule(fullOptions.workletURL);
     } catch (e) {
       console.error(
         `Encountered an error while loading worklet. Please make sure the worklet vad.bundle.min.js included with @ricky0123/vad-web is available at the specified path:
         ${fullOptions.workletURL}
         If need be, you can customize the worklet file location using the \`workletURL\` option.`
-      )
-      throw e
+      );
+      throw e;
     }
     const vadNode = new AudioWorkletNode(ctx, "vad-helper-worklet", {
       processorOptions: {
         frameSamples: fullOptions.frameSamples,
       },
-    })
+    });
 
-    let model: Silero
+    let model: Silero;
     try {
-      model = await Silero.new(ort, () =>
-        fullOptions.modelFetcher(fullOptions.modelURL)
-      )
+      model = await loadModel();
+      console.log("模型数据", model);
     } catch (e) {
-      console.error(
-        `Encountered an error while loading model file. Please make sure silero_vad.onnx, included with @ricky0123/vad-web, is available at the specified path:
-      ${fullOptions.modelURL}
-      If need be, you can customize the model file location using the \`modelsURL\` option.`
-      )
-      throw e
+      console.error("初始化模型失败！！！");
+      throw e;
     }
+
+    // try {
+    //   model = await Silero.new(ort, () =>
+    //     fullOptions.modelFetcher(fullOptions.modelURL)
+    //   )
+    // } catch (e) {
+    //   console.error("初始化模型失败！！！");
+    //   throw e
+    // }
 
     const frameProcessor = new FrameProcessor(
       model.process,
@@ -217,29 +248,29 @@ export class AudioNodeVAD {
         minSpeechFrames: fullOptions.minSpeechFrames,
         submitUserSpeechOnPause: fullOptions.submitUserSpeechOnPause,
       }
-    )
+    );
 
     const audioNodeVAD = new AudioNodeVAD(
       ctx,
       fullOptions,
       frameProcessor,
       vadNode
-    )
+    );
 
     vadNode.port.onmessage = async (ev: MessageEvent) => {
       switch (ev.data?.message) {
         case Message.AudioFrame:
-          const buffer: ArrayBuffer = ev.data.data
-          const frame = new Float32Array(buffer)
-          await audioNodeVAD.processFrame(frame)
-          break
+          const buffer: ArrayBuffer = ev.data.data;
+          const frame = new Float32Array(buffer);
+          await audioNodeVAD.processFrame(frame);
+          break;
 
         default:
-          break
+          break;
       }
-    }
+    };
 
-    return audioNodeVAD
+    return audioNodeVAD;
   }
 
   constructor(
@@ -250,55 +281,57 @@ export class AudioNodeVAD {
   ) {}
 
   pause = () => {
-    const ev = this.frameProcessor.pause()
-    this.handleFrameProcessorEvent(ev)
-  }
+    const ev = this.frameProcessor.pause();
+    this.handleFrameProcessorEvent(ev);
+  };
 
   start = () => {
-    this.frameProcessor.resume()
-  }
+    this.frameProcessor.resume();
+  };
 
   receive = (node: AudioNode) => {
-    node.connect(this.entryNode)
-  }
+    node.connect(this.entryNode);
+  };
 
   processFrame = async (frame: Float32Array) => {
-    const ev = await this.frameProcessor.process(frame) // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
-    this.handleFrameProcessorEvent(ev)
-  }
+    const ev = await this.frameProcessor.process(frame); // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
+    this.handleFrameProcessorEvent(ev);
+  };
 
   handleFrameProcessorEvent = (
     ev: Partial<{
-      probs: SpeechProbabilities
-      msg: Message
-      audio: Float32Array
+      probs: SpeechProbabilities;
+      msg: Message;
+      audio: Float32Array;
     }>
   ) => {
     if (ev.probs !== undefined) {
-      this.options.onFrameProcessed(ev.probs,ev.audio as Float32Array)
+      this.options.onFrameProcessed(ev.probs, ev.audio as Float32Array);
     }
     switch (ev.msg) {
       case Message.SpeechStart:
-        this.options.onSpeechStart()
-        break
+        this.options.onSpeechStart();
+        break;
 
       case Message.VADMisfire:
-        this.options.onVADMisfire()
-        break
+        this.options.onVADMisfire();
+        break;
 
       case Message.SpeechEnd:
-        this.options.onSpeechEnd(ev.audio as Float32Array)
-        break
+        this.options.onSpeechEnd(ev.audio as Float32Array);
+        break;
 
       default:
-        break
+        break;
     }
-  }
+  };
 
   destroy = () => {
     this.entryNode.port.postMessage({
       message: Message.SpeechStop,
-    })
-    this.entryNode.disconnect()
-  }
+    });
+    this.entryNode.disconnect();
+  };
+
+  
 }

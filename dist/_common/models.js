@@ -2,19 +2,17 @@
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Silero = void 0;
-// @ts-ignore
-const logging_1 = require("./logging");
 class Silero {
     constructor(ort, modelFetcher) {
         this.ort = ort;
         this.modelFetcher = modelFetcher;
         this.init = async () => {
-            logging_1.log.debug("initializing vad");
+            console.log("VAD 正在初始化");
             const modelArrayBuffer = await this.modelFetcher();
             this._session = await this.ort.InferenceSession.create(modelArrayBuffer);
             this._sr = new this.ort.Tensor("int64", [16000n]);
             this.reset_state();
-            logging_1.log.debug("vad is initialized");
+            console.log("VAD 初始化完成", modelArrayBuffer);
         };
         this.reset_state = () => {
             const zeroes = Array(2 * 64).fill(0);
@@ -34,7 +32,7 @@ class Silero {
             this._c = out.cn;
             const [isSpeech] = out.output.data;
             const notSpeech = 1 - isSpeech;
-            return { notSpeech, isSpeech };
+            return { notSpeech, isSpeech, audioFrame };
         };
     }
 }

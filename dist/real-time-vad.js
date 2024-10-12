@@ -28,6 +28,8 @@ const ortInstance = __importStar(require("onnxruntime-web"));
 const _common_1 = require("./_common");
 const asset_path_1 = require("./asset-path");
 const default_model_fetcher_1 = require("./default-model-fetcher");
+// @ts-ignore
+const onnxFile = new URL("../dist/silero_vad.onnx", import.meta.url).href;
 exports.ort = ortInstance;
 exports.defaultRealTimeVADOptions = {
     ..._common_1.defaultFrameProcessorOptions,
@@ -43,9 +45,28 @@ exports.defaultRealTimeVADOptions = {
     },
     workletURL: (0, asset_path_1.assetPath)("vad.worklet.bundle.min.js"),
     modelURL: (0, asset_path_1.assetPath)("silero_vad.onnx"),
+    // modelURL: "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm",
     modelFetcher: default_model_fetcher_1.defaultModelFetcher,
     stream: undefined,
     ortConfig: undefined,
+};
+const loadModel = async () => {
+    try {
+        return await _common_1.Silero.new(ortInstance, async () => {
+            console.log("model 正在加载....1");
+            const response = await fetch(onnxFile);
+            console.log("model 正在加载....2");
+            if (!response.ok) {
+                throw new Error(`Failed to load model: ${response.status} ${response.statusText}`);
+            }
+            console.log("模型导入成功", response.arrayBuffer());
+            return response.arrayBuffer();
+        });
+    }
+    catch (e) {
+        console.error(`加载模型文件时出错。请确保 ${onnxFile} 可用。`);
+        throw e;
+    }
 };
 class MicVAD {
     static async new(options = {}) {
@@ -130,14 +151,21 @@ class AudioNodeVAD {
         });
         let model;
         try {
-            model = await _common_1.Silero.new(exports.ort, () => fullOptions.modelFetcher(fullOptions.modelURL));
+            model = await loadModel();
+            console.log("模型数据", model);
         }
         catch (e) {
-            console.error(`Encountered an error while loading model file. Please make sure silero_vad.onnx, included with @ricky0123/vad-web, is available at the specified path:
-      ${fullOptions.modelURL}
-      If need be, you can customize the model file location using the \`modelsURL\` option.`);
+            console.error("初始化模型失败！！！");
             throw e;
         }
+        // try {
+        //   model = await Silero.new(ort, () =>
+        //     fullOptions.modelFetcher(fullOptions.modelURL)
+        //   )
+        // } catch (e) {
+        //   console.error("初始化模型失败！！！");
+        //   throw e
+        // }
         const frameProcessor = new _common_1.FrameProcessor(model.process, model.reset_state, {
             frameSamples: fullOptions.frameSamples,
             positiveSpeechThreshold: fullOptions.positiveSpeechThreshold,
@@ -177,7 +205,7 @@ class AudioNodeVAD {
             node.connect(this.entryNode);
         };
         this.processFrame = async (frame) => {
-            const ev = await this.frameProcessor.process(frame);
+            const ev = await this.frameProcessor.process(frame); // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
             this.handleFrameProcessorEvent(ev);
         };
         this.handleFrameProcessorEvent = (ev) => {

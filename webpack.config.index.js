@@ -23,14 +23,14 @@ const bundleConfig = ({ mode, suffix }) => {
         },
       ],
     },
-    externals: {
-      "onnxruntime-web": {
-        commonjs: "onnxruntime-web",
-        commonjs2: "onnxruntime-web",
-        amd: "onnxruntime-web",
-        root: "ort",
-      },
-    },
+    // externals: {
+    //   "onnxruntime-web": {
+    //     commonjs: "onnxruntime-web",
+    //     commonjs2: "onnxruntime-web",
+    //     amd: "onnxruntime-web",
+    //     root: "ort",
+    //   },
+    // },
     output: {
       filename: `bundle.${suffix}.js`,
       library: { name: "vad", type: "umd" },

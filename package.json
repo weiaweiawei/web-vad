@@ -1,5 +1,5 @@
 {
-  "name": "@ricky0123/vad-web",
+  "name": "vad-web",
   "description": "Powerful, user-friendly voice activity detector (VAD) for the browser",
   "keywords": [
     "speech-recognition",
@@ -11,7 +11,7 @@
     "voice-control",
     "offline-speech-recognition"
   ],
-  "homepage": "https://github.com/ricky0123/vad",
+  "homepage": "",
   "version": "0.0.18",
   "license": "ISC",
   "main": "dist/index.js",
@@ -30,7 +30,7 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "build": "./scripts/build.sh",
+    "build": "rm -rf dist && mkdir dist && npx tsc && cp ./silero_vad.onnx dist && npx webpack -c webpack.config.worklet.js && npx webpack -c webpack.config.index.js",
     "test-server": "tsc -p ./scripts/tsconfig.json && node ./scripts/test-server.js",
     "test": "playwright test",
     "clean": "rm -rf dist"

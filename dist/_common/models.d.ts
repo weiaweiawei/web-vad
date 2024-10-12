@@ -6,6 +6,7 @@ export type OrtOptions = {
 export interface SpeechProbabilities {
     notSpeech: number;
     isSpeech: number;
+    audioFrame: Float32Array;
 }
 export interface Model {
     reset_state: () => void;
