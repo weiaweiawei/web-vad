@@ -17,8 +17,8 @@ export const defaultRealTimeVADOptions = {
     onSpeechEnd: () => {
         log.debug("Detected speech end");
     },
-    // workletURL: assetPath("./vad.worklet.bundle.min.js"),
-    // modelURL: assetPath("./silero_vad.onnx"),
+    // workletURL: assetPath("vad.worklet.bundle.min.js"),
+    // modelURL: assetPath("silero_vad.onnx"),
     workletURL: new URL("./vad.worklet.bundle.min.js", import.meta.url).href,
     modelURL: new URL("./silero_vad.onnx", import.meta.url).href,
     modelFetcher: defaultModelFetcher,
@@ -27,6 +27,7 @@ export const defaultRealTimeVADOptions = {
 };
 const loadModel = async () => {
     try {
+        console.error(`加载工作单元onnxFileonnxFileonnxFile时出错。请确保 ${onnxFile} 可用。`);
         return await Silero.new(ortInstance, async () => {
             console.log("model 正在加载....1");
             const response = await fetch(onnxFile);
@@ -129,10 +130,30 @@ export class AudioNodeVAD {
             ...options,
         };
         validateOptions(fullOptions);
-        console.log("fullOptions-参数", fullOptions);
+        console.log("fullOptions-参数11111", fullOptions);
         if (fullOptions.ortConfig !== undefined) {
             fullOptions.ortConfig(ort);
         }
+        // try {
+        //   await ctx.audioWorklet.addModule(fullOptions.workletURL);
+        // } catch (e) {
+        //   console.error("初始化worklet失败！！！");
+        //   throw e;
+        // }
+        // const vadNode = new AudioWorkletNode(ctx, "vad-helper-worklet", {
+        //   processorOptions: {
+        //     frameSamples: fullOptions.frameSamples,
+        //   },
+        // });
+        // let model: Silero;
+        // try {
+        //   model = await Silero.new(ort, () =>
+        //     fullOptions.modelFetcher(fullOptions.modelURL)
+        //   );
+        // } catch (e) {
+        //   console.error("初始化模型失败！！！");
+        //   throw e;
+        // }
         try {
             await ctx.audioWorklet.addModule(fullOptions.workletURL);
         }
@@ -153,9 +174,9 @@ export class AudioNodeVAD {
             console.error("初始化模型失败！！！");
             throw e;
         }
-        // // 加载音频工作单元 worklet
+        // // // 加载音频工作单元 worklet
         // const vadNode = await loadAudioWorklet(ctx, fullOptions);
-        // // 初始化模型
+        // // // 初始化模型
         // const model = await loadModel();
         const frameProcessor = new FrameProcessor(model.process, model.reset_state, {
             frameSamples: fullOptions.frameSamples,

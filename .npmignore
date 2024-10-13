@@ -1,8 +1,8 @@
 node_modules/
-src/
 testPage/
-webpack.config.js
-playwright.config.ts
+webpack.config.index.js
+webpack.config.worklet.js
 tsconfig*
 !*.onnx
 *.html
+src/
