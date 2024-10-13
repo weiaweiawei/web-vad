@@ -33,7 +33,7 @@ const onnxFile = new URL("./silero_vad.onnx", import.meta.url).href;
 exports.ort = ortInstance;
 exports.defaultRealTimeVADOptions = {
     ..._common_1.defaultFrameProcessorOptions,
-    onFrameProcessed: (probabilities, audio) => { },
+    onFrameProcessed: (probabilities, speaking) => { },
     onVADMisfire: () => {
         _common_1.log.debug("VAD misfire");
     },
@@ -138,9 +138,7 @@ class AudioNodeVAD {
             await ctx.audioWorklet.addModule(fullOptions.workletURL);
         }
         catch (e) {
-            console.error(`Encountered an error while loading worklet. Please make sure the worklet vad.bundle.min.js included with @ricky0123/vad-web is available at the specified path:
-        ${fullOptions.workletURL}
-        If need be, you can customize the worklet file location using the \`workletURL\` option.`);
+            console.error("初始化worklet失败！！！");
             throw e;
         }
         const vadNode = new AudioWorkletNode(ctx, "vad-helper-worklet", {
@@ -149,13 +147,6 @@ class AudioNodeVAD {
             },
         });
         let model;
-        // try {
-        //   model = await loadModel();
-        //   console.log("模型数据", model);
-        // } catch (e) {
-        //   console.error("初始化模型失败！！！");
-        //   throw e;
-        // }
         try {
             model = await _common_1.Silero.new(exports.ort, () => fullOptions.modelFetcher(fullOptions.modelURL));
         }
@@ -207,7 +198,7 @@ class AudioNodeVAD {
         };
         this.handleFrameProcessorEvent = (ev) => {
             if (ev.probs !== undefined) {
-                this.options.onFrameProcessed(ev.probs, ev.audio);
+                this.options.onFrameProcessed(ev.probs, ev.speaking);
             }
             switch (ev.msg) {
                 case _common_1.Message.SpeechStart:

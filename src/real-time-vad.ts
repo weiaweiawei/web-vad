@@ -19,8 +19,9 @@ interface RealTimeVADCallbacks {
   /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
   onFrameProcessed: (
     probabilities: SpeechProbabilities,
-    audio: Float32Array
+    speaking: boolean | undefined
   ) => any;
+  onFrameProcessing?: (parsms: any) => any;
 
   /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
    * audio segment is smaller than `minSpeechFrames`.
@@ -78,7 +79,7 @@ export type RealTimeVADOptions =
 
 export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   ...defaultFrameProcessorOptions,
-  onFrameProcessed: (probabilities, audio) => {},
+  onFrameProcessed: (probabilities, speaking) => {},
   onVADMisfire: () => {
     log.debug("VAD misfire");
   },
@@ -95,12 +96,12 @@ export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   ortConfig: undefined,
 };
 
-const loadModel =  async () =>{
+const loadModel = async () => {
   try {
     return await Silero.new(ortInstance, async () => {
       console.log("model 正在加载....1");
       const response = await fetch(onnxFile);
-      console.log("model 正在加载....2",response);
+      console.log("model 正在加载....2", response);
       if (!response.ok) {
         throw new Error(
           `Failed to load model: ${response.status} ${response.statusText}`
@@ -112,7 +113,7 @@ const loadModel =  async () =>{
     console.error(`加载模型文件时出错。请确保 ${onnxFile} 可用。`);
     throw e;
   }
-}
+};
 
 export class MicVAD {
   static async new(options: Partial<RealTimeVADOptions> = {}) {
@@ -204,11 +205,7 @@ export class AudioNodeVAD {
     try {
       await ctx.audioWorklet.addModule(fullOptions.workletURL);
     } catch (e) {
-      console.error(
-        `Encountered an error while loading worklet. Please make sure the worklet vad.bundle.min.js included with @ricky0123/vad-web is available at the specified path:
-        ${fullOptions.workletURL}
-        If need be, you can customize the worklet file location using the \`workletURL\` option.`
-      );
+      console.error("初始化worklet失败！！！");
       throw e;
     }
     const vadNode = new AudioWorkletNode(ctx, "vad-helper-worklet", {
@@ -218,21 +215,14 @@ export class AudioNodeVAD {
     });
 
     let model: Silero;
-    // try {
-    //   model = await loadModel();
-    //   console.log("模型数据", model);
-    // } catch (e) {
-    //   console.error("初始化模型失败！！！");
-    //   throw e;
-    // }
 
     try {
       model = await Silero.new(ort, () =>
         fullOptions.modelFetcher(fullOptions.modelURL)
-      )
+      );
     } catch (e) {
       console.error("初始化模型失败！！！");
-      throw e
+      throw e;
     }
 
     const frameProcessor = new FrameProcessor(
@@ -302,10 +292,11 @@ export class AudioNodeVAD {
       probs: SpeechProbabilities;
       msg: Message;
       audio: Float32Array;
+      speaking: boolean;
     }>
   ) => {
     if (ev.probs !== undefined) {
-      this.options.onFrameProcessed(ev.probs, ev.audio as Float32Array);
+      this.options.onFrameProcessed(ev.probs, ev.speaking);
     }
     switch (ev.msg) {
       case Message.SpeechStart:
@@ -331,6 +322,4 @@ export class AudioNodeVAD {
     });
     this.entryNode.disconnect();
   };
-
-  
 }

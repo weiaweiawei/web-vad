@@ -2,7 +2,8 @@ import * as ortInstance from "onnxruntime-web";
 import { Message, SpeechProbabilities, FrameProcessor, FrameProcessorOptions, OrtOptions } from "./_common";
 interface RealTimeVADCallbacks {
     /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
-    onFrameProcessed: (probabilities: SpeechProbabilities, audio: Float32Array) => any;
+    onFrameProcessed: (probabilities: SpeechProbabilities, speaking: boolean | undefined) => any;
+    onFrameProcessing?: (parsms: any) => any;
     /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
      * audio segment is smaller than `minSpeechFrames`.
      */
@@ -64,6 +65,7 @@ export declare class AudioNodeVAD {
         probs: SpeechProbabilities;
         msg: Message;
         audio: Float32Array;
+        speaking: boolean;
     }>) => void;
     destroy: () => void;
 }

@@ -113,7 +113,7 @@ class FrameProcessor {
             if (probs.isSpeech >= this.options.positiveSpeechThreshold &&
                 !this.speaking) {
                 this.speaking = true;
-                return { probs, msg: messages_1.Message.SpeechStart };
+                return { probs, msg: messages_1.Message.SpeechStart }; // 开始说话
             }
             if (probs.isSpeech < this.options.negativeSpeechThreshold &&
                 this.speaking &&
@@ -126,8 +126,8 @@ class FrameProcessor {
                     return acc + +item.isSpeech;
                 }, 0);
                 if (speechFrameCount >= this.options.minSpeechFrames) {
-                    const audio = concatArrays(audioBuffer.map((item) => item.frame));
-                    return { probs, msg: messages_1.Message.SpeechEnd, audio };
+                    const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
+                    return { probs, msg: messages_1.Message.SpeechEnd, audio }; // 结束说话
                 }
                 else {
                     return { probs, msg: messages_1.Message.VADMisfire };
@@ -138,8 +138,7 @@ class FrameProcessor {
                     this.audioBuffer.shift();
                 }
             }
-            return { probs, frame };
-            // 怎样处理上面返回的 音频帧呢，就是如果结束了 就停止收集，做个优先级
+            return { probs, speaking: this.speaking };
         };
         this.audioBuffer = [];
         this.reset();

@@ -5,10 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>web-vad</title>
-
-    <!-- <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.js"></script> -->
-    <!-- <script src="./ort.js"></script> -->
-    <script src="./dist/bundle.min.js"></script>
+    <script src="../dist/bundle.min.js"></script>
     <script type="module">
       const loading = setInterval(() => {
         const indicator = document.getElementById("indicator");
@@ -22,16 +19,32 @@
           minSpeechFrames: 5,
           preSpeechPadFrames: 10,
 
-          onFrameProcessed: (probs) => {
-            console.log("indicatorColor", probs);
+          onFrameProcessed: (probs, speaking) => {
+            console.log("indicatorColor", probs,speaking);
           },
-          onSpeechEnd: (arr) => {
-            const wavBuffer = vad.utils.encodeWAV(arr);
-            const base64 = vad.utils.arrayBufferToBase64(wavBuffer);
-            const url = `data:audio/wav;base64,${base64}`;
-            const el = addAudio(url);
-            const speechList = document.getElementById("playlist");
-            speechList.prepend(el);
+          onFrameProcessing: (parsms) => {
+            console.log("正在处理的参数", parsms);
+          },
+          // onSpeechEnd: (arr) => {
+          //   const wavBuffer = vad.utils.encodeWAV(arr);
+          //   const base64 = vad.utils.arrayBufferToBase64(wavBuffer);
+          //   const url = `data:audio/wav;base64,${base64}`;
+          //   const el = addAudio(url);
+          //   const speechList = document.getElementById("playlist");
+          //   speechList.prepend(el);
+          // },
+          onSpeechStart: () => {
+            console.log("开始讲话!!!");
+          },
+          onSpeechEnd: (audio) => {
+            console.log("结束讲话!!!");
+          },
+          // onFrameProcessed: (probabilities, audio) => {
+          //   console.log("Frame processed");
+          // },
+
+          onVADMisfired: () => {
+            console.log("Detected speech start");
           },
         });
         window.myvad = myvad;

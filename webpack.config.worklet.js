@@ -1,5 +1,4 @@
 const prod = { mode: "production", suffix: "min" }
-const dev = { mode: "development", suffix: "dev" }
 
 const workletConfig = ({ mode, suffix }) => {
   return {
@@ -11,4 +10,4 @@ const workletConfig = ({ mode, suffix }) => {
   }
 }
 
-module.exports = [workletConfig(dev), workletConfig(prod)]
+module.exports = [workletConfig(prod)]
