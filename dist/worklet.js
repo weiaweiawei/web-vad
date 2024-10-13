@@ -1,29 +1,30 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const _common_1 = require("./_common");
+import { Message, log, Resampler } from "./_common";
 class Processor extends AudioWorkletProcessor {
+    // @ts-ignore
+    resampler;
+    _initialized = false;
+    _stopProcessing = false;
+    options;
     constructor(options) {
         super();
-        this._initialized = false;
-        this._stopProcessing = false;
-        this.init = async () => {
-            _common_1.log.debug("initializing worklet");
-            this.resampler = new _common_1.Resampler({
-                nativeSampleRate: sampleRate,
-                targetSampleRate: 16000,
-                targetFrameSize: this.options.frameSamples,
-            });
-            this._initialized = true;
-            _common_1.log.debug("initialized worklet");
-        };
         this.options = options.processorOptions;
         this.port.onmessage = (ev) => {
-            if (ev.data.message === _common_1.Message.SpeechStop) {
+            if (ev.data.message === Message.SpeechStop) {
                 this._stopProcessing = true;
             }
         };
         this.init();
     }
+    init = async () => {
+        log.debug("initializing worklet");
+        this.resampler = new Resampler({
+            nativeSampleRate: sampleRate,
+            targetSampleRate: 16000,
+            targetFrameSize: this.options.frameSamples,
+        });
+        this._initialized = true;
+        log.debug("initialized worklet");
+    };
     process(inputs, outputs, parameters) {
         if (this._stopProcessing) {
             return false;
@@ -33,7 +34,7 @@ class Processor extends AudioWorkletProcessor {
         if (this._initialized && arr instanceof Float32Array) {
             const frames = this.resampler.process(arr);
             for (const frame of frames) {
-                this.port.postMessage({ message: _common_1.Message.AudioFrame, data: frame.buffer }, [frame.buffer]);
+                this.port.postMessage({ message: Message.AudioFrame, data: frame.buffer }, [frame.buffer]);
             }
         }
         return true;

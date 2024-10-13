@@ -1,6 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.assetPath = void 0;
 // nextjs@14 bundler may attempt to execute this during SSR and crash
 const isWeb = typeof window !== "undefined" && typeof window.document !== "undefined";
 const currentScript = isWeb
@@ -13,8 +10,7 @@ if (currentScript) {
         .replace(/\?.*$/, "")
         .replace(/\/[^\/]+$/, "/");
 }
-const assetPath = (file) => {
+export const assetPath = (file) => {
     return basePath + file;
 };
-exports.assetPath = assetPath;
 //# sourceMappingURL=asset-path.js.map

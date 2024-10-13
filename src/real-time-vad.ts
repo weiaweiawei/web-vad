@@ -15,6 +15,8 @@ import { defaultModelFetcher } from "./default-model-fetcher";
 // @ts-ignore
 const onnxFile = new URL("./silero_vad.onnx", import.meta.url).href;
 
+const workletURL = new URL("./worklet.js", import.meta.url).href;
+
 interface RealTimeVADCallbacks {
   /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
   onFrameProcessed: (
@@ -89,8 +91,10 @@ export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   onSpeechEnd: () => {
     log.debug("Detected speech end");
   },
-  workletURL: assetPath("vad.worklet.bundle.min.js"),
-  modelURL: assetPath("silero_vad.onnx"),
+  // workletURL: assetPath("./vad.worklet.bundle.min.js"),
+  // modelURL: assetPath("./silero_vad.onnx"),
+  workletURL: new URL("./vad.worklet.bundle.min.js", import.meta.url).href,
+  modelURL: new URL("./silero_vad.onnx", import.meta.url).href,
   modelFetcher: defaultModelFetcher,
   stream: undefined,
   ortConfig: undefined,
@@ -114,6 +118,25 @@ const loadModel = async () => {
     throw e;
   }
 };
+
+const  loadAudioWorklet = async (
+  ctx: AudioContext,
+  fullOptions: RealTimeVADOptions
+) => {
+  try {
+    await ctx.audioWorklet.addModule(workletURL);
+  } catch (e) {
+    console.error(
+      `加载工作单元时出错。请确保 ${workletURL} 可用。`
+    );
+    throw e;
+  }
+  return new AudioWorkletNode(ctx, "vad-worklet", {
+    processorOptions: {
+      frameSamples: fullOptions.frameSamples,
+    },
+  });
+}
 
 export class MicVAD {
   static async new(options: Partial<RealTimeVADOptions> = {}) {
@@ -224,6 +247,12 @@ export class AudioNodeVAD {
       console.error("初始化模型失败！！！");
       throw e;
     }
+
+    // // 加载音频工作单元 worklet
+    // const vadNode = await loadAudioWorklet(ctx, fullOptions);
+
+    // // 初始化模型
+    // const model = await loadModel();
 
     const frameProcessor = new FrameProcessor(
       model.process,

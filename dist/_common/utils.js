@@ -1,11 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.encodeWAV = exports.arrayBufferToBase64 = exports.minFramesForTargetMS = void 0;
-function minFramesForTargetMS(targetDuration, frameSamples, sr = 16000) {
+export function minFramesForTargetMS(targetDuration, frameSamples, sr = 16000) {
     return Math.ceil((targetDuration * sr) / 1000 / frameSamples);
 }
-exports.minFramesForTargetMS = minFramesForTargetMS;
-function arrayBufferToBase64(buffer) {
+export function arrayBufferToBase64(buffer) {
     var binary = "";
     var bytes = new Uint8Array(buffer);
     var len = bytes.byteLength;
@@ -14,11 +10,10 @@ function arrayBufferToBase64(buffer) {
     }
     return btoa(binary);
 }
-exports.arrayBufferToBase64 = arrayBufferToBase64;
 /*
 This rest of this was mostly copied from https://github.com/linto-ai/WebVoiceSDK
 */
-function encodeWAV(samples, format = 3, sampleRate = 16000, numChannels = 1, bitDepth = 32) {
+export function encodeWAV(samples, format = 3, sampleRate = 16000, numChannels = 1, bitDepth = 32) {
     var bytesPerSample = bitDepth / 8;
     var blockAlign = numChannels * bytesPerSample;
     var buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
@@ -58,7 +53,6 @@ function encodeWAV(samples, format = 3, sampleRate = 16000, numChannels = 1, bit
     }
     return buffer;
 }
-exports.encodeWAV = encodeWAV;
 function interleave(inputL, inputR) {
     var length = inputL.length + inputR.length;
     var result = new Float32Array(length);

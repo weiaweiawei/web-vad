@@ -1,31 +1,30 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Resampler = void 0;
-const logging_1 = require("./logging");
-class Resampler {
+import { log } from "./logging";
+export class Resampler {
+    options;
+    inputBuffer;
     constructor(options) {
         this.options = options;
-        this.process = (audioFrame) => {
-            const outputFrames = [];
-            this.fillInputBuffer(audioFrame);
-            while (this.hasEnoughDataForFrame()) {
-                const outputFrame = this.generateOutputFrame();
-                outputFrames.push(outputFrame);
-            }
-            return outputFrames;
-        };
-        this.stream = async function* (audioFrame) {
-            this.fillInputBuffer(audioFrame);
-            while (this.hasEnoughDataForFrame()) {
-                const outputFrame = this.generateOutputFrame();
-                yield outputFrame;
-            }
-        };
         if (options.nativeSampleRate < 16000) {
-            logging_1.log.error("nativeSampleRate is too low. Should have 16000 = targetSampleRate <= nativeSampleRate");
+            log.error("nativeSampleRate is too low. Should have 16000 = targetSampleRate <= nativeSampleRate");
         }
         this.inputBuffer = [];
     }
+    process = (audioFrame) => {
+        const outputFrames = [];
+        this.fillInputBuffer(audioFrame);
+        while (this.hasEnoughDataForFrame()) {
+            const outputFrame = this.generateOutputFrame();
+            outputFrames.push(outputFrame);
+        }
+        return outputFrames;
+    };
+    stream = async function* (audioFrame) {
+        this.fillInputBuffer(audioFrame);
+        while (this.hasEnoughDataForFrame()) {
+            const outputFrame = this.generateOutputFrame();
+            yield outputFrame;
+        }
+    };
     fillInputBuffer(audioFrame) {
         for (const sample of audioFrame) {
             this.inputBuffer.push(sample);
@@ -60,5 +59,4 @@ class Resampler {
         return outputFrame;
     }
 }
-exports.Resampler = Resampler;
 //# sourceMappingURL=resampler.js.map

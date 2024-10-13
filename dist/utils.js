@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.audioFileToArray = void 0;
-async function audioFileToArray(audioFileData) {
+export async function audioFileToArray(audioFileData) {
     const ctx = new OfflineAudioContext(1, 1, 44100);
     const reader = new FileReader();
     let audioBuffer = null;
@@ -38,5 +35,4 @@ async function audioFileToArray(audioFileData) {
     }
     return { audio: out, sampleRate: _audioBuffer.sampleRate };
 }
-exports.audioFileToArray = audioFileToArray;
 //# sourceMappingURL=utils.js.map

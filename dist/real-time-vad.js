@@ -1,57 +1,33 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AudioNodeVAD = exports.MicVAD = exports.defaultRealTimeVADOptions = exports.ort = void 0;
-const ortInstance = __importStar(require("onnxruntime-web"));
-const _common_1 = require("./_common");
-const asset_path_1 = require("./asset-path");
-const default_model_fetcher_1 = require("./default-model-fetcher");
+import * as ortInstance from "onnxruntime-web";
+import { log, Message, Silero, defaultFrameProcessorOptions, FrameProcessor, validateOptions, } from "./_common";
+import { defaultModelFetcher } from "./default-model-fetcher";
 // @ts-ignore
 const onnxFile = new URL("./silero_vad.onnx", import.meta.url).href;
-exports.ort = ortInstance;
-exports.defaultRealTimeVADOptions = {
-    ..._common_1.defaultFrameProcessorOptions,
+const workletURL = new URL("./worklet.js", import.meta.url).href;
+export const ort = ortInstance;
+export const defaultRealTimeVADOptions = {
+    ...defaultFrameProcessorOptions,
     onFrameProcessed: (probabilities, speaking) => { },
     onVADMisfire: () => {
-        _common_1.log.debug("VAD misfire");
+        log.debug("VAD misfire");
     },
     onSpeechStart: () => {
-        _common_1.log.debug("Detected speech start");
+        log.debug("Detected speech start");
     },
     onSpeechEnd: () => {
-        _common_1.log.debug("Detected speech end");
+        log.debug("Detected speech end");
     },
-    workletURL: (0, asset_path_1.assetPath)("vad.worklet.bundle.min.js"),
-    modelURL: (0, asset_path_1.assetPath)("silero_vad.onnx"),
-    modelFetcher: default_model_fetcher_1.defaultModelFetcher,
+    // workletURL: assetPath("./vad.worklet.bundle.min.js"),
+    // modelURL: assetPath("./silero_vad.onnx"),
+    workletURL: new URL("./vad.worklet.bundle.min.js", import.meta.url).href,
+    modelURL: new URL("./silero_vad.onnx", import.meta.url).href,
+    modelFetcher: defaultModelFetcher,
     stream: undefined,
     ortConfig: undefined,
 };
 const loadModel = async () => {
     try {
-        return await _common_1.Silero.new(ortInstance, async () => {
+        return await Silero.new(ortInstance, async () => {
             console.log("model 正在加载....1");
             const response = await fetch(onnxFile);
             console.log("model 正在加载....2", response);
@@ -66,13 +42,33 @@ const loadModel = async () => {
         throw e;
     }
 };
-class MicVAD {
+const loadAudioWorklet = async (ctx, fullOptions) => {
+    try {
+        await ctx.audioWorklet.addModule(workletURL);
+    }
+    catch (e) {
+        console.error(`加载工作单元时出错。请确保 ${workletURL} 可用。`);
+        throw e;
+    }
+    return new AudioWorkletNode(ctx, "vad-worklet", {
+        processorOptions: {
+            frameSamples: fullOptions.frameSamples,
+        },
+    });
+};
+export class MicVAD {
+    options;
+    audioContext;
+    stream;
+    audioNodeVAD;
+    sourceNode;
+    listening;
     static async new(options = {}) {
         const fullOptions = {
-            ...exports.defaultRealTimeVADOptions,
+            ...defaultRealTimeVADOptions,
             ...options,
         };
-        (0, _common_1.validateOptions)(fullOptions);
+        validateOptions(fullOptions);
         let stream;
         if (fullOptions.stream === undefined)
             stream = await navigator.mediaDevices.getUserMedia({
@@ -101,38 +97,41 @@ class MicVAD {
         this.audioNodeVAD = audioNodeVAD;
         this.sourceNode = sourceNode;
         this.listening = listening;
-        this.pause = () => {
-            this.audioNodeVAD.pause();
-            this.listening = false;
-        };
-        this.start = () => {
-            this.audioNodeVAD.start();
-            this.listening = true;
-        };
-        this.destroy = () => {
-            if (this.listening) {
-                this.pause();
-            }
-            if (this.options.stream === undefined) {
-                this.stream.getTracks().forEach((track) => track.stop());
-            }
-            this.sourceNode.disconnect();
-            this.audioNodeVAD.destroy();
-            this.audioContext.close();
-        };
     }
+    pause = () => {
+        this.audioNodeVAD.pause();
+        this.listening = false;
+    };
+    start = () => {
+        this.audioNodeVAD.start();
+        this.listening = true;
+    };
+    destroy = () => {
+        if (this.listening) {
+            this.pause();
+        }
+        if (this.options.stream === undefined) {
+            this.stream.getTracks().forEach((track) => track.stop());
+        }
+        this.sourceNode.disconnect();
+        this.audioNodeVAD.destroy();
+        this.audioContext.close();
+    };
 }
-exports.MicVAD = MicVAD;
-class AudioNodeVAD {
+export class AudioNodeVAD {
+    ctx;
+    options;
+    frameProcessor;
+    entryNode;
     static async new(ctx, options = {}) {
         const fullOptions = {
-            ...exports.defaultRealTimeVADOptions,
+            ...defaultRealTimeVADOptions,
             ...options,
         };
-        (0, _common_1.validateOptions)(fullOptions);
+        validateOptions(fullOptions);
         console.log("fullOptions-参数", fullOptions);
         if (fullOptions.ortConfig !== undefined) {
-            fullOptions.ortConfig(exports.ort);
+            fullOptions.ortConfig(ort);
         }
         try {
             await ctx.audioWorklet.addModule(fullOptions.workletURL);
@@ -148,13 +147,17 @@ class AudioNodeVAD {
         });
         let model;
         try {
-            model = await _common_1.Silero.new(exports.ort, () => fullOptions.modelFetcher(fullOptions.modelURL));
+            model = await Silero.new(ort, () => fullOptions.modelFetcher(fullOptions.modelURL));
         }
         catch (e) {
             console.error("初始化模型失败！！！");
             throw e;
         }
-        const frameProcessor = new _common_1.FrameProcessor(model.process, model.reset_state, {
+        // // 加载音频工作单元 worklet
+        // const vadNode = await loadAudioWorklet(ctx, fullOptions);
+        // // 初始化模型
+        // const model = await loadModel();
+        const frameProcessor = new FrameProcessor(model.process, model.reset_state, {
             frameSamples: fullOptions.frameSamples,
             positiveSpeechThreshold: fullOptions.positiveSpeechThreshold,
             negativeSpeechThreshold: fullOptions.negativeSpeechThreshold,
@@ -166,7 +169,7 @@ class AudioNodeVAD {
         const audioNodeVAD = new AudioNodeVAD(ctx, fullOptions, frameProcessor, vadNode);
         vadNode.port.onmessage = async (ev) => {
             switch (ev.data?.message) {
-                case _common_1.Message.AudioFrame:
+                case Message.AudioFrame:
                     const buffer = ev.data.data;
                     const frame = new Float32Array(buffer);
                     await audioNodeVAD.processFrame(frame);
@@ -182,45 +185,44 @@ class AudioNodeVAD {
         this.options = options;
         this.frameProcessor = frameProcessor;
         this.entryNode = entryNode;
-        this.pause = () => {
-            const ev = this.frameProcessor.pause();
-            this.handleFrameProcessorEvent(ev);
-        };
-        this.start = () => {
-            this.frameProcessor.resume();
-        };
-        this.receive = (node) => {
-            node.connect(this.entryNode);
-        };
-        this.processFrame = async (frame) => {
-            const ev = await this.frameProcessor.process(frame); // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
-            this.handleFrameProcessorEvent(ev);
-        };
-        this.handleFrameProcessorEvent = (ev) => {
-            if (ev.probs !== undefined) {
-                this.options.onFrameProcessed(ev.probs, ev.speaking);
-            }
-            switch (ev.msg) {
-                case _common_1.Message.SpeechStart:
-                    this.options.onSpeechStart();
-                    break;
-                case _common_1.Message.VADMisfire:
-                    this.options.onVADMisfire();
-                    break;
-                case _common_1.Message.SpeechEnd:
-                    this.options.onSpeechEnd(ev.audio);
-                    break;
-                default:
-                    break;
-            }
-        };
-        this.destroy = () => {
-            this.entryNode.port.postMessage({
-                message: _common_1.Message.SpeechStop,
-            });
-            this.entryNode.disconnect();
-        };
     }
+    pause = () => {
+        const ev = this.frameProcessor.pause();
+        this.handleFrameProcessorEvent(ev);
+    };
+    start = () => {
+        this.frameProcessor.resume();
+    };
+    receive = (node) => {
+        node.connect(this.entryNode);
+    };
+    processFrame = async (frame) => {
+        const ev = await this.frameProcessor.process(frame); // 处理每一帧数据，来判断是否有中断之类的 以及开始,它这里面有个累积的数据
+        this.handleFrameProcessorEvent(ev);
+    };
+    handleFrameProcessorEvent = (ev) => {
+        if (ev.probs !== undefined) {
+            this.options.onFrameProcessed(ev.probs, ev.speaking);
+        }
+        switch (ev.msg) {
+            case Message.SpeechStart:
+                this.options.onSpeechStart();
+                break;
+            case Message.VADMisfire:
+                this.options.onVADMisfire();
+                break;
+            case Message.SpeechEnd:
+                this.options.onSpeechEnd(ev.audio);
+                break;
+            default:
+                break;
+        }
+    };
+    destroy = () => {
+        this.entryNode.port.postMessage({
+            message: Message.SpeechStop,
+        });
+        this.entryNode.disconnect();
+    };
 }
-exports.AudioNodeVAD = AudioNodeVAD;
 //# sourceMappingURL=real-time-vad.js.map
