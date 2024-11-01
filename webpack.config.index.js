@@ -21,13 +21,6 @@ const bundleConfig = ({ mode, suffix }) => {
             filename: "[name][ext]",
           },
         },
-        {
-          test: /\.js$/, // 添加这个规则来处理 JS 文件
-          exclude: /node_modules/, // 排除 node_modules 目录
-          use: {
-            loader: 'babel-loader', // 使用 babel-loader
-          },
-        },
       ],
     },
     // externals: {

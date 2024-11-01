@@ -55,7 +55,7 @@ export const defaultFrameProcessorOptions: FrameProcessorOptions = {
   preSpeechPadFrames: 1, //在语音结束时，向前回溯并附加到音频片段中的帧数。
   redemptionFrames: 8, // 这里设为 8，表示静音后会再等待 8 帧。如果在此期间重新检测到语音活动，则取消静音判断。
   frameSamples: 1536, // 每个帧的音频样本数量。对于采样率为 16000 的音频，1536 是推荐值之一。范围：必须是 512、1024 或 1536 之一，使用其他值可能会降低模型的性能。
-  minSpeechFrames: 3, // 如果检测到的语音片段的帧数少于 minSpeechFrames，则认为是误检，丢弃该片段。
+  minSpeechFrames: 4, // 如果检测到的语音片段的帧数少于 minSpeechFrames，则认为是误检，丢弃该片段。
   submitUserSpeechOnPause: false, // 设为 false，表示暂停时不提交语音片段，直接重置或丢弃未完成的语音检测。
 };
 
@@ -187,16 +187,28 @@ export class FrameProcessor implements FrameProcessorInterface {
     ) {
       this.redemptionCounter = 0; // 重置静音帧计算数量
     }
-    // 加个逻辑，声音帧，持续输出，不是中断是持续讲话的,然后将下面静音的逻辑，移到外面处理
-    // 不是开始、不是结束、是持续
 
-    if (
-      probs.isSpeech >= this.options.positiveSpeechThreshold &&
-      !this.speaking
-    ) {
+    const audioBuffer = this.audioBuffer;
+
+    const speechFrameCount = audioBuffer.reduce((acc, item) => {
+      return acc + +item.isSpeech;
+    }, 0);
+    console.log("speechFrameCount", speechFrameCount,"exitLength",this.audioBuffer.length);
+
+    if (speechFrameCount >= this.options.minSpeechFrames && !this.speaking) {
       this.speaking = true;
-      return { probs, msg: Message.SpeechStart }; // 开始说话
+      // const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
+      console.log("开始讲话", speechFrameCount);
+      return { probs, msg: Message.SpeechStart };
     }
+
+    // if (
+    //   probs.isSpeech >= this.options.positiveSpeechThreshold &&
+    //   !this.speaking
+    // ) {
+    //   this.speaking = true;
+    //   return { probs, msg: Message.SpeechStart }; // 开始说话
+    // }
 
     if (
       probs.isSpeech < this.options.negativeSpeechThreshold &&
@@ -218,6 +230,7 @@ export class FrameProcessor implements FrameProcessorInterface {
         const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
         return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
       } else {
+        console.log("丢弃的音频：", audioBuffer);
         return { probs, msg: Message.VADMisfire };
       }
     }
