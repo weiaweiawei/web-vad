@@ -193,7 +193,12 @@ export class FrameProcessor implements FrameProcessorInterface {
     const speechFrameCount = audioBuffer.reduce((acc, item) => {
       return acc + +item.isSpeech;
     }, 0);
-    console.log("speechFrameCount", speechFrameCount,"exitLength",this.audioBuffer.length);
+    console.log(
+      "speechFrameCount",
+      speechFrameCount,
+      "exitLength",
+      this.audioBuffer.length
+    );
 
     if (speechFrameCount >= this.options.minSpeechFrames && !this.speaking) {
       this.speaking = true;
@@ -222,17 +227,20 @@ export class FrameProcessor implements FrameProcessorInterface {
       const audioBuffer = this.audioBuffer;
       this.audioBuffer = [];
 
-      const speechFrameCount = audioBuffer.reduce((acc, item) => {
-        return acc + +item.isSpeech;
-      }, 0);
+      const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
+      return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
 
-      if (speechFrameCount >= this.options.minSpeechFrames) {
-        const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
-        return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
-      } else {
-        console.log("丢弃的音频：", audioBuffer);
-        return { probs, msg: Message.VADMisfire };
-      }
+      // const speechFrameCount = audioBuffer.reduce((acc, item) => {
+      //   return acc + +item.isSpeech;
+      // }, 0);
+
+      // if (speechFrameCount >= this.options.minSpeechFrames) {
+      //   const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
+      //   return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
+      // } else {
+      //   console.log("丢弃的音频：", audioBuffer);
+      //   return { probs, msg: Message.VADMisfire };
+      // }
     }
 
     if (!this.speaking) {

@@ -137,17 +137,18 @@ export class FrameProcessor {
             this.speaking = false;
             const audioBuffer = this.audioBuffer;
             this.audioBuffer = [];
-            const speechFrameCount = audioBuffer.reduce((acc, item) => {
-                return acc + +item.isSpeech;
-            }, 0);
-            if (speechFrameCount >= this.options.minSpeechFrames) {
-                const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
-                return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
-            }
-            else {
-                console.log("丢弃的音频：", audioBuffer);
-                return { probs, msg: Message.VADMisfire };
-            }
+            const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
+            return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
+            // const speechFrameCount = audioBuffer.reduce((acc, item) => {
+            //   return acc + +item.isSpeech;
+            // }, 0);
+            // if (speechFrameCount >= this.options.minSpeechFrames) {
+            //   const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
+            //   return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
+            // } else {
+            //   console.log("丢弃的音频：", audioBuffer);
+            //   return { probs, msg: Message.VADMisfire };
+            // }
         }
         if (!this.speaking) {
             while (this.audioBuffer.length > this.options.preSpeechPadFrames) {

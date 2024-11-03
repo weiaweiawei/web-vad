@@ -20,12 +20,12 @@
     try {
       const myvad = await vad.MicVAD.new({
         positiveSpeechThreshold: 0.8,
-        minSpeechFrames: 5,
-        preSpeechPadFrames: 10,
+        minSpeechFrames: 5, // 是个不够
+        preSpeechPadFrames: 15,  // 保留前1秒
         redemptionFrames: 10,
 
         onFrameProcessed: (probs, speaking) => {
-          console.log("indicatorColor", probs,speaking, Math.floor( Date.now()/ 1000) );
+          // console.log("indicatorColor", probs,speaking, Math.floor( Date.now()/ 1000) );
           const indicatorColor = interpolateInferno(probs.isSpeech / 2)
           document.body.style.setProperty("--indicator-color", indicatorColor)
         },
