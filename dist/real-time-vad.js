@@ -227,7 +227,7 @@ export class AudioNodeVAD {
         }
         switch (ev.msg) {
             case Message.SpeechStart:
-                this.options.onSpeechStart();
+                this.options.onSpeechStart(ev.audio);
                 break;
             case Message.VADMisfire:
                 this.options.onVADMisfire();

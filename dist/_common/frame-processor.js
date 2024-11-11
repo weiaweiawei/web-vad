@@ -120,7 +120,8 @@ export class FrameProcessor {
             this.speaking = true;
             // const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
             console.log("开始讲话", speechFrameCount);
-            return { probs, msg: Message.SpeechStart };
+            const audio = concatArrays(audioBuffer.map((item) => item.frame));
+            return { probs, msg: Message.SpeechStart, audio };
         }
         // if (
         //   probs.isSpeech >= this.options.positiveSpeechThreshold &&

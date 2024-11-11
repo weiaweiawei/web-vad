@@ -31,7 +31,7 @@ interface RealTimeVADCallbacks {
   onVADMisfire: () => any;
 
   /** Callback to run when speech start is detected */
-  onSpeechStart: () => any;
+  onSpeechStart: (audio: Float32Array) => any;
 
   /**
    * Callback to run when speech end is detected.
@@ -356,7 +356,7 @@ export class AudioNodeVAD {
     }
     switch (ev.msg) {
       case Message.SpeechStart:
-        this.options.onSpeechStart();
+        this.options.onSpeechStart(ev.audio as Float32Array);
         break;
 
       case Message.VADMisfire:

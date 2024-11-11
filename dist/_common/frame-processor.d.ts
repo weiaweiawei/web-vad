@@ -89,11 +89,6 @@ export declare class FrameProcessor implements FrameProcessorInterface {
     } | {
         probs: SpeechProbabilities;
         msg: Message;
-        audio?: undefined;
-        speaking?: undefined;
-    } | {
-        probs: SpeechProbabilities;
-        msg: Message;
         audio: Float32Array;
         speaking?: undefined;
     } | {

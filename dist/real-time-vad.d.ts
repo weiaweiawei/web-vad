@@ -9,7 +9,7 @@ interface RealTimeVADCallbacks {
      */
     onVADMisfire: () => any;
     /** Callback to run when speech start is detected */
-    onSpeechStart: () => any;
+    onSpeechStart: (audio: Float32Array) => any;
     /**
      * Callback to run when speech end is detected.
      * Takes as arg a Float32Array of audio samples between -1 and 1, sample rate 16000.
