@@ -40,11 +40,8 @@
           const speechList = document.getElementById("playlist");
           speechList.prepend(el);
         },
-        onSpeechStart: () => {
-          console.log("开始讲话!!!");
-        },
-        onVADMisfire: () => {
-          console.log("音频太短，丢弃了");
+        onSpeechStart: (audio) => {
+          console.log("开始讲话!!!",audio);
         },
       });
       window.myvad = myvad;

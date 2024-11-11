@@ -9,18 +9,14 @@ Quick start:
 <script>
   async function main() {
     const myvad = await vad.MicVAD.new({
-      onSpeechStart: () => {
-        console.log("Detected speech start");
+      onSpeechStart: (audio) => {
+        console.log("Detected speech start",audio);
       },
       onSpeechEnd: (audio) => {
         console.log("Detected speech end");
       },
       onFrameProcessed: (probabilities, audio) => {
         console.log("Frame processed");
-      },
-
-      onVADMisfired: () => {
-        console.log("onVADMisfire  fire");
       },
     });
     myvad.start();

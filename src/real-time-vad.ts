@@ -25,11 +25,6 @@ interface RealTimeVADCallbacks {
   ) => any;
   onFrameProcessing?: (parsms: any) => any;
 
-  /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
-   * audio segment is smaller than `minSpeechFrames`.
-   */
-  onVADMisfire: () => any;
-
   /** Callback to run when speech start is detected */
   onSpeechStart: (audio: Float32Array) => any;
 
@@ -82,9 +77,6 @@ export type RealTimeVADOptions =
 export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   ...defaultFrameProcessorOptions,
   onFrameProcessed: (probabilities, speaking) => {},
-  onVADMisfire: () => {
-    log.debug("VAD misfire");
-  },
   onSpeechStart: () => {
     log.debug("Detected speech start");
   },
@@ -93,7 +85,7 @@ export const defaultRealTimeVADOptions: RealTimeVADOptions = {
   },
   // workletURL: assetPath("vad.worklet.bundle.min.js"),
   // modelURL: assetPath("silero_vad.onnx"),
-  workletURL:  new URL("./vad.worklet.bundle.min.js", import.meta.url).href,
+  workletURL: new URL("./vad.worklet.bundle.min.js", import.meta.url).href,
   modelURL: new URL("./silero_vad.onnx", import.meta.url).href,
   modelFetcher: defaultModelFetcher,
   stream: undefined,
@@ -122,16 +114,14 @@ const loadModel = async () => {
   }
 };
 
-const  loadAudioWorklet = async (
+const loadAudioWorklet = async (
   ctx: AudioContext,
   fullOptions: RealTimeVADOptions
 ) => {
   try {
     await ctx.audioWorklet.addModule(workletURL);
   } catch (e) {
-    console.error(
-      `加载工作单元时出错。请确保 ${workletURL} 可用。`
-    );
+    console.error(`加载工作单元时出错。请确保 ${workletURL} 可用。`);
     throw e;
   }
   return new AudioWorkletNode(ctx, "vad-worklet", {
@@ -139,7 +129,7 @@ const  loadAudioWorklet = async (
       frameSamples: fullOptions.frameSamples,
     },
   });
-}
+};
 
 export class MicVAD {
   static async new(options: Partial<RealTimeVADOptions> = {}) {
@@ -251,7 +241,6 @@ export class AudioNodeVAD {
     //   throw e;
     // }
 
-
     try {
       await ctx.audioWorklet.addModule(fullOptions.workletURL);
     } catch (e) {
@@ -274,7 +263,7 @@ export class AudioNodeVAD {
       console.error("初始化模型失败！！！");
       throw e;
     }
-    
+
     // // // 加载音频工作单元 worklet
     // const vadNode = await loadAudioWorklet(ctx, fullOptions);
 
@@ -357,10 +346,6 @@ export class AudioNodeVAD {
     switch (ev.msg) {
       case Message.SpeechStart:
         this.options.onSpeechStart(ev.audio as Float32Array);
-        break;
-
-      case Message.VADMisfire:
-        this.options.onVADMisfire();
         break;
 
       case Message.SpeechEnd:
