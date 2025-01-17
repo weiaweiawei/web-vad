@@ -202,20 +202,11 @@ export class FrameProcessor implements FrameProcessorInterface {
 
     if (speechFrameCount >= this.options.minSpeechFrames && !this.speaking) {
       this.speaking = true;
-      // const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
       console.log("开始讲话", speechFrameCount);
       const audio = concatArrays(audioBuffer.map((item) => item.frame)); 
       return { probs, msg: Message.SpeechStart , audio};
     }
-
-    // if (
-    //   probs.isSpeech >= this.options.positiveSpeechThreshold &&
-    //   !this.speaking
-    // ) {
-    //   this.speaking = true;
-    //   return { probs, msg: Message.SpeechStart }; // 开始说话
-    // }
-
+    
     if (
       probs.isSpeech < this.options.negativeSpeechThreshold &&
       this.speaking &&
@@ -230,18 +221,6 @@ export class FrameProcessor implements FrameProcessorInterface {
 
       const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
       return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
-
-      // const speechFrameCount = audioBuffer.reduce((acc, item) => {
-      //   return acc + +item.isSpeech;
-      // }, 0);
-
-      // if (speechFrameCount >= this.options.minSpeechFrames) {
-      //   const audio = concatArrays(audioBuffer.map((item) => item.frame)); // 合并音频
-      //   return { probs, msg: Message.SpeechEnd, audio }; // 结束说话
-      // } else {
-      //   console.log("丢弃的音频：", audioBuffer);
-      //   return { probs, msg: Message.VADMisfire };
-      // }
     }
 
     if (!this.speaking) {

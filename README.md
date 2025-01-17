@@ -24,3 +24,4 @@ Quick start:
   main();
 </script>
 ```
+no-vad分支是，不加载vad，只使用录音功能+worklet
