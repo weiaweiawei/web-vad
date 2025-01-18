@@ -189,10 +189,22 @@ export class FrameProcessor implements FrameProcessorInterface {
     }
 
     const audioBuffer = this.audioBuffer;
-
+    // 某音频片段包含 活动音频帧数
     const speechFrameCount = audioBuffer.reduce((acc, item) => {
       return acc + +item.isSpeech;
     }, 0);
+
+    // // 连续活动音频帧数， 只用做开始讲话的判断
+    // const speechFrameCount = audioBuffer.reduce((acc, item) => {
+    //   if (item.isSpeech) {
+    //     acc.currentCount++;
+    //     acc.maxCount = Math.max(acc.maxCount, acc.currentCount);
+    //   } else {
+    //     acc.currentCount = 0;
+    //   }
+    //   return acc;
+    // }, { currentCount: 0, maxCount: 0 }).maxCount;
+
     console.log(
       "speechFrameCount",
       speechFrameCount,
