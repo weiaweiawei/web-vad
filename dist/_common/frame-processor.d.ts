@@ -81,6 +81,7 @@ export declare class FrameProcessor implements FrameProcessorInterface {
         msg?: undefined;
         audio?: undefined;
     };
+    lowerVolume: (frame: Float32Array | undefined, factor: number) => Float32Array;
     process: (frame: Float32Array) => Promise<{
         probs?: undefined;
         msg?: undefined;

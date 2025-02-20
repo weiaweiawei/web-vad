@@ -20,7 +20,7 @@
     try {
       const myvad = await vad.MicVAD.new({
         positiveSpeechThreshold: 0.8,
-        minSpeechFrames: 5, // 是个不够
+        minSpeechFrames: 5, // 最小音频帧数
         preSpeechPadFrames: 15,  // 保留前1秒
         redemptionFrames: 10,
 
