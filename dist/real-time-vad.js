@@ -8,9 +8,6 @@ export const ort = ortInstance;
 export const defaultRealTimeVADOptions = {
     ...defaultFrameProcessorOptions,
     onFrameProcessed: (probabilities, speaking) => { },
-    onVADMisfire: () => {
-        log.debug("VAD misfire");
-    },
     onSpeechStart: () => {
         log.debug("Detected speech start");
     },
@@ -228,9 +225,6 @@ export class AudioNodeVAD {
         switch (ev.msg) {
             case Message.SpeechStart:
                 this.options.onSpeechStart(ev.audio);
-                break;
-            case Message.VADMisfire:
-                this.options.onVADMisfire();
                 break;
             case Message.SpeechEnd:
                 this.options.onSpeechEnd(ev.audio);

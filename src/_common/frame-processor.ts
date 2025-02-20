@@ -170,12 +170,21 @@ export class FrameProcessor implements FrameProcessorInterface {
     return {};
   };
 
+  // factor： 降低音量的倍数
+  lowerVolume = (frame: Float32Array | undefined, factor: number): Float32Array => {
+    if (!frame) {
+      return new Float32Array(0);
+    }
+  
+    return frame.map(sample => sample * factor);
+  };
+  
   process = async (frame: Float32Array) => {
     if (!this.active) {
       return {};
     }
-
-    const probs = await this.modelProcessFunc(frame);
+    // 将传入的音频帧，强度降低一半
+    const probs = await this.modelProcessFunc(this.lowerVolume(frame, 0.5));
     this.audioBuffer.push({
       frame,
       isSpeech: probs.isSpeech >= this.options.positiveSpeechThreshold,
@@ -190,20 +199,20 @@ export class FrameProcessor implements FrameProcessorInterface {
 
     const audioBuffer = this.audioBuffer;
     // 某音频片段包含 活动音频帧数
-    const speechFrameCount = audioBuffer.reduce((acc, item) => {
-      return acc + +item.isSpeech;
-    }, 0);
-
-    // // 连续活动音频帧数， 只用做开始讲话的判断
     // const speechFrameCount = audioBuffer.reduce((acc, item) => {
-    //   if (item.isSpeech) {
-    //     acc.currentCount++;
-    //     acc.maxCount = Math.max(acc.maxCount, acc.currentCount);
-    //   } else {
-    //     acc.currentCount = 0;
-    //   }
-    //   return acc;
-    // }, { currentCount: 0, maxCount: 0 }).maxCount;
+    //   return acc + +item.isSpeech;
+    // }, 0);
+
+    // 连续活动音频帧数， 只用做开始讲话的判断
+    const speechFrameCount = audioBuffer.reduce((acc, item) => {
+      if (item.isSpeech) {
+        acc.currentCount++;
+        acc.maxCount = Math.max(acc.maxCount, acc.currentCount);
+      } else {
+        acc.currentCount = 0;
+      }
+      return acc;
+    }, { currentCount: 0, maxCount: 0 }).maxCount;
 
     console.log(
       "speechFrameCount",

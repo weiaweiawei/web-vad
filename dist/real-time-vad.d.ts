@@ -4,10 +4,6 @@ interface RealTimeVADCallbacks {
     /** Callback to run after each frame. The size (number of samples) of a frame is given by `frameSamples`. */
     onFrameProcessed: (probabilities: SpeechProbabilities, speaking: boolean | undefined) => any;
     onFrameProcessing?: (parsms: any) => any;
-    /** Callback to run if speech start was detected but `onSpeechEnd` will not be run because the
-     * audio segment is smaller than `minSpeechFrames`.
-     */
-    onVADMisfire: () => any;
     /** Callback to run when speech start is detected */
     onSpeechStart: (audio: Float32Array) => any;
     /**
