@@ -25,3 +25,4 @@ Quick start:
 </script>
 ```
 no-vad分支是，不加载vad，只使用录音功能+worklet
+参考项目是：https://github.com/ricky0123/vad.git
